@@ -120,7 +120,7 @@ export default function SignupPage() {
 
                     <Text textAlign="center" mb={6}>
                         Já possui uma conta?{' '}
-                        <Link as={RouterLink} to="/login" color="blue.500">
+                        <Link as={RouterLink} to="/" color="blue.500">
                             Login
                         </Link>
                     </Text>

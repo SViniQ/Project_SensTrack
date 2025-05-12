@@ -24,7 +24,7 @@ export default function Header() {
 
   const handleLogout = () => {
     // lógica de logout, como limpar tokens ou estados
-    navigate('/login')
+    navigate('/')
   }
 
   return (
