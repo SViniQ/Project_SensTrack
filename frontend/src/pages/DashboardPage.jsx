@@ -14,10 +14,13 @@ import {
   useColorModeValue,
   Image
 } from '@chakra-ui/react'
-import { SearchIcon } from '@chakra-ui/icons'
+import { SearchIcon} from '@chakra-ui/icons'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { BsThermometerHalf, BsDroplet, BsClock } from 'react-icons/bs'
-import Header from '../components/Header'
+import Sensors from './Sensors'
+import Reports from './Reports'
+import { Routes, Route, Navigate } from 'react-router-dom'
+
 
 const data = [
   { name: '00h', temperatura: 22, umidade: 60 },
@@ -40,7 +43,21 @@ export default function DashboardPage() {
 
   return (
     <Flex direction="column" minH="100vh" p={4} bg={bg}>
-      <Header />
+      <Box flex="1" p={4}>
+        <Routes>
+          {/* Index do /dashboard */}
+          <Route index element={<div>Painel de controle</div>} />
+
+          {/* /dashboard/sensores */}
+          <Route index element={<Sensors />} />
+
+          {/* /dashboard/reports */}
+          <Route index element={<Reports />} />
+
+          {/* Qualquer outra rota volta pro index */}
+          <Route index element={<Navigate to="" replace />} />
+        </Routes>
+      </Box>
 
       {/* Main content */}
       <Flex direction={['column', 'row']} gap={6} flex="1">
