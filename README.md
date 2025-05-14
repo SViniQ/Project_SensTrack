@@ -70,3 +70,6 @@
 - Lucas Carvalho - [Link do LinkedIn]
 - Yuri França - [Link do LinkedIn](https://www.linkedin.com/in/yurifrança1/)
 - Arthur Orange - [Link do LinkedIn](https://www.linkedin.com/in/arthur-orange-59a803154/)
+
+---
+
