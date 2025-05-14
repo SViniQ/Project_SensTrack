@@ -66,7 +66,7 @@
 
 - Vinícius S. Queiroz - [Link do LinkedIn](https://www.linkedin.com/in/viníciussilvaqueiroz/)
 - Pedro Bim - [Link do LinkedIn](https://www.linkedin.com/in/pedrobimm/)
-- Priscila Maciel - [Link do LinkedIn]
-- Lucas Carvalho - [Link do LinkedIn]
+- Priscila Maciel - [Link do LinkedIn](https://www.linkedin.com/in/priscila-m-255a94190/)
+- Lucas Carvalho - [Link do LinkedIn](https://www.linkedin.com/in/lucas-almeida-de-carvalho/)
 - Yuri França - [Link do LinkedIn](https://www.linkedin.com/in/yurifrança1/)
 - Arthur Orange - [Link do LinkedIn](https://www.linkedin.com/in/arthur-orange-59a803154/)
