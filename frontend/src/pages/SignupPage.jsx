@@ -1,3 +1,5 @@
+import profileImg from '../assets/profile.png';
+import logoImg from '../assets/logo.png';
 import { useNavigate } from 'react-router-dom'
 import { Link as RouterLink } from 'react-router-dom'
 import React from 'react'
@@ -43,7 +45,7 @@ export default function SignupPage() {
                 justifyContent="center"
             >
                 <Image
-                    src="/src/assets/profile.png"
+                    src={profileImg}
                     alt="Usuária sorrindo"
                     borderRadius="full"
                     boxSize={['200px', '300px']}
@@ -64,7 +66,7 @@ export default function SignupPage() {
                     {/* Logo */}
                     <Flex mb={4} justify="center">
                         <Image
-                            src="/src/assets/logo.png"
+                            src={logoImg}
                             alt="SenseTrack Logo"
                             boxSize="80px"
                         />
