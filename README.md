@@ -56,6 +56,31 @@
 
 ---
 
+##🚀 Como Executar
+
+
+1.Certifique-se de ter o Java e o Maven instalados em sua máquina.
+
+2. Clone o repositório:
+```bash
+git clone https://github.com/SViniQ/Project_SensTrack.git
+```
+3. Navegue até o diretório do projeto:
+
+```bash
+cd SenseTrack
+```
+
+4. Instale o pacote node:
+
+```bash
+npm install 
+```
+5. Execute a aplicação:
+
+```bash
+npm run dev
+```
 ## 📝 Documentação
 
 - 📄 [Documentação Geral](https://www.notion.so/Projeto-SenseTrack-1de779467da9805daca7da18f5fb762b?pvs=4)
