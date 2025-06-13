@@ -5,7 +5,6 @@ import {
   Text,
   Stack,
   Badge,
-  IconButton,
   Flex,
   Spacer,
   useColorModeValue,
@@ -13,13 +12,18 @@ import {
   Alert,
   AlertIcon,
   Button,
+  IconButton,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   Modal,
   ModalOverlay,
   ModalContent,
   ModalHeader,
   ModalCloseButton,
   ModalBody,
-  useDisclosure
+  useDisclosure,
 } from '@chakra-ui/react'
 import api from '../services/api'
 import { FiFileText } from 'react-icons/fi'
@@ -31,7 +35,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from 'recharts'
 import { format } from 'date-fns'
 
@@ -65,30 +69,14 @@ const fetchSensorReadings = async () => {
 export default function Reports() {
   const [reports, setReports] = useState([])
   const [readings, setReadings] = useState([])
-  const [analysisResult, setAnalysisResult] = useState(null)
-  const [analysisLoading, setAnalysisLoading] = useState(true)
-  const [analysisError, setAnalysisError] = useState(null)
+  const [modalReport, setModalReport] = useState(null)
+  const { isOpen, onOpen, onClose } = useDisclosure()
   const bg = useColorModeValue('gray.50', 'gray.800')
   const cardBg = useColorModeValue('white', 'gray.700')
-  const { isOpen, onOpen, onClose } = useDisclosure()
 
   useEffect(() => {
     fetchReports().then(data => setReports(data))
     fetchSensorReadings().then(data => setReadings(data))
-
-    const fetchAnalysis = async () => {
-      try {
-        setAnalysisLoading(true)
-        const response = await api.get('/analysis/temperature')
-        setAnalysisResult(response.data)
-        setAnalysisError(null)
-      } catch (err) {
-        setAnalysisError(err?.response?.data?.message || 'Erro ao buscar análise')
-      } finally {
-        setAnalysisLoading(false)
-      }
-    }
-    fetchAnalysis()
   }, [])
 
   const statuses = ['CONCLUIDO', 'PROCESSANDO', 'ERRO']
@@ -96,6 +84,12 @@ export default function Reports() {
     CONCLUIDO: 'green',
     PROCESSANDO: 'yellow',
     ERRO: 'red',
+  }
+
+  // Função para abrir modal e mostrar relatório
+  const openReportModal = (report) => {
+    setModalReport(report)
+    onOpen()
   }
 
   return (
@@ -123,12 +117,20 @@ export default function Reports() {
                           {status}
                         </Badge>
                         <Spacer />
-                        <IconButton
-                          size="sm"
-                          variant="ghost"
-                          icon={<BsThreeDotsVertical />}
-                          aria-label="Opções"
-                        />
+                        <Menu>
+                          <MenuButton
+                            as={IconButton}
+                            icon={<BsThreeDotsVertical />}
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Opções"
+                          />
+                          <MenuList>
+                            <MenuItem onClick={() => alert(`Editar relatório ${report.id}`)}>Editar</MenuItem>
+                            <MenuItem onClick={() => alert(`Excluir relatório ${report.id}`)}>Excluir</MenuItem>
+                            <MenuItem onClick={() => alert(`Exportar relatório ${report.id}`)}>Exportar</MenuItem>
+                          </MenuList>
+                        </Menu>
                       </Flex>
 
                       <Stack mt={3} spacing={1}>
@@ -144,6 +146,7 @@ export default function Reports() {
                           variant="ghost"
                           icon={<FiFileText />}
                           aria-label="Ver Relatório"
+                          onClick={() => openReportModal(report)}
                         />
                       </Flex>
                     </Box>
@@ -186,43 +189,30 @@ export default function Reports() {
               </ResponsiveContainer>
             </Box>
           )}
-
-          <Box mt={10}>
-            <Button onClick={onOpen} colorScheme="blue">
-              Ver Análise Automatizada
-            </Button>
-          </Box>
         </Box>
       </Box>
 
-      <Modal isOpen={isOpen} onClose={onClose} isCentered>
+      <Modal isOpen={isOpen} onClose={onClose} isCentered size="lg">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Análise Automatizada de Temperatura</ModalHeader>
+          <ModalHeader>Relatório {modalReport ? modalReport.id : ''}</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
-            {analysisLoading && <Spinner size="lg" />}
-
-            {analysisError && (
-              <Alert status="error" mb={4}>
-                <AlertIcon />
-                {analysisError}
-              </Alert>
-            )}
-
-            {analysisResult && (
+            {modalReport ? (
               <>
-                <Text fontSize="lg" mb={2}>{analysisResult.message}</Text>
-                {analysisResult.timestamp && (
-                  <Text fontSize="sm" color="gray.500">
-                    Data/Hora da Análise: {format(new Date(analysisResult.timestamp), 'dd/MM/yyyy HH:mm:ss')}
-                  </Text>
-                )}
-              </>
-            )}
+                <Text fontWeight="bold" mb={2}>Categoria:</Text>
+                <Text mb={4}>{modalReport.categoria}</Text>
 
-            {!analysisLoading && !analysisError && !analysisResult && (
-              <Text>Nenhum resultado disponível no momento.</Text>
+                <Text fontWeight="bold" mb={2}>Período:</Text>
+                <Text mb={4}>{modalReport.periodo}</Text>
+
+                <Text fontWeight="bold" mb={2}>Status:</Text>
+                <Badge colorScheme={colorMap[modalReport.status]}>
+                  {modalReport.status}
+                </Badge>
+              </>
+            ) : (
+              <Text>Nenhum relatório selecionado.</Text>
             )}
           </ModalBody>
         </ModalContent>
