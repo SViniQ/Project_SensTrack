@@ -1,35 +1,28 @@
-// src/pages/DashboardPage.jsx
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Flex,
-  Heading,
   Text,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Icon,
+  useColorModeValue,
   Card,
   CardBody,
-  useColorModeValue,
-  Image
+  Icon,
 } from '@chakra-ui/react'
-import { SearchIcon} from '@chakra-ui/icons'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts'
 import { BsThermometerHalf, BsDroplet, BsClock } from 'react-icons/bs'
 import Sensors from './Sensors'
 import Reports from './Reports'
 import { Routes, Route, Navigate } from 'react-router-dom'
-
-
-const data = [
-  { name: '00h', temperatura: 22, umidade: 60 },
-  { name: '04h', temperatura: 21, umidade: 63 },
-  { name: '08h', temperatura: 23, umidade: 58 },
-  { name: '12h', temperatura: 27, umidade: 52 },
-  { name: '16h', temperatura: 28, umidade: 49 },
-  { name: '20h', temperatura: 25, umidade: 55 },
-]
+import { useBreakpointValue } from '@chakra-ui/react'
 
 const insights = [
   { icon: BsThermometerHalf, label: 'Temperatura Atual', value: '27°C' },
@@ -37,48 +30,138 @@ const insights = [
   { icon: BsClock, label: 'Última Atualização', value: '14:32' },
 ]
 
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <Box
+        bg="white"
+        p={3}
+        borderRadius="md"
+        boxShadow="md"
+        border="1px solid #ccc"
+      >
+        <Text fontWeight="bold">{label}</Text>
+        {payload.map((entry) => (
+          <Text key={entry.name} color={entry.color}>
+            {entry.name}: {entry.value}
+            {entry.name === 'Temperatura' ? '°C' : '%'}
+          </Text>
+        ))}
+      </Box>
+    )
+  }
+  return null
+}
+
 export default function DashboardPage() {
+  const [data, setData] = useState([])
+
+  // Função que simula busca e atualização de dados
+  const fetchData = () => {
+    const now = new Date()
+    const hours = now.getHours()
+    const newData = Array.from({ length: 6 }).map((_, i) => {
+      const hour = (hours - (5 - i) + 24) % 24
+      return {
+        name: `${hour}h`,
+        temperatura: 20 + Math.round(Math.random() * 10),
+        umidade: 50 + Math.round(Math.random() * 20),
+      }
+    })
+    setData(newData)
+  }
+
+  useEffect(() => {
+    fetchData() // busca inicial
+
+    const interval = setInterval(() => {
+      fetchData() // atualiza a cada 30 segundos
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [])
+
   const bg = useColorModeValue('gray.100', 'gray.800')
   const cardBg = useColorModeValue('white', 'gray.700')
+
+  const direction = useBreakpointValue({
+    base: 'column',
+    lg: 'row',
+  })
 
   return (
     <Flex direction="column" minH="100vh" p={4} bg={bg}>
       <Box flex="1" p={4}>
         <Routes>
-          {/* Index do /dashboard */}
           <Route index element={<div>Painel de controle</div>} />
-
-          {/* /dashboard/sensores */}
-          <Route index element={<Sensors />} />
-
-          {/* /dashboard/reports */}
-          <Route index element={<Reports />} />
-
-          {/* Qualquer outra rota volta pro index */}
-          <Route index element={<Navigate to="" replace />} />
+          <Route path="sensors" element={<Sensors />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="*" element={<Navigate to="" replace />} />
         </Routes>
       </Box>
 
-      {/* Main content */}
-      <Flex direction={['column', 'row']} gap={6} flex="1">
-        {/* Chart Section */}
-        <Box flex="2" bg={cardBg} borderRadius="xl" p={4} boxShadow="md">
-          <Text fontSize="lg" mb={4} fontWeight="semibold">
-            Temperatura e umidade nas Últimas Horas
+      <Flex direction={direction} gap={6} flex="1">
+        <Box
+          flex="2"
+          minW="0"
+          bg={cardBg}
+          borderRadius="xl"
+          p={4}
+          boxShadow="md"
+          height={{ base: '300px', md: '400px' }}
+        >
+          <Text
+            fontSize={{ base: 'lg', md: '2xl' }}
+            mb={6}
+            fontWeight="bold"
+            color="blue.600"
+          >
+            Temperatura e Umidade nas Últimas Horas
           </Text>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data}>
-              <XAxis dataKey="name" stroke="#888" />
-              <YAxis stroke="#888" />
-              <Tooltip />
-              <Line type="monotone" dataKey="temperatura" stroke="#E53E3E" strokeWidth={2} />
-              <Line type="monotone" dataKey="umidade" stroke="#3182CE" strokeWidth={2} />
+
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={data}
+              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+              <XAxis
+                dataKey="name"
+                stroke="#8884d8"
+                tick={{ fontSize: 14 }}
+                padding={{ left: 10, right: 10 }}
+              />
+              <YAxis
+                stroke="#8884d8"
+                tick={{ fontSize: 14 }}
+                domain={['dataMin - 5', 'dataMax + 5']}
+                allowDecimals={false}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend verticalAlign="top" height={36} />
+              <Line
+                type="monotone"
+                dataKey="temperatura"
+                name="Temperatura"
+                stroke="#3182CE"
+                strokeWidth={3}
+                dot={{ r: 6, strokeWidth: 2, stroke: '#3182CE', fill: '#fff' }}
+                activeDot={{ r: 8 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="umidade"
+                name="Umidade"
+                stroke="#38A169"
+                strokeWidth={3}
+                dot={{ r: 6, strokeWidth: 2, stroke: '#38A169', fill: '#fff' }}
+                activeDot={{ r: 8 }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </Box>
 
-        {/* Insights */}
-        <Flex direction="column" flex="1" gap={4}>
+        <Flex direction="column" flex="1" minW="0" gap={4}>
           {insights.map(({ icon, label, value }) => (
             <Card key={label} bg={cardBg} borderRadius="xl" boxShadow="md">
               <CardBody>
@@ -96,14 +179,24 @@ export default function DashboardPage() {
               </CardBody>
             </Card>
           ))}
-          {/* Painel de Insights Gerados */}
-          <Box bg={cardBg} borderRadius="xl" boxShadow="md" p={4} mt={4} flex="1" maxH="350px" overflowY="auto" sx={{
-            '&::-webkit-scrollbar': {
-              display: 'none',
-            },
-            '-ms-overflow-style': 'none',
-            'scrollbar-width': 'none',
-          }}>
+
+          <Box
+            bg={cardBg}
+            borderRadius="xl"
+            boxShadow="md"
+            p={4}
+            mt={4}
+            flex="1"
+            maxH="350px"
+            overflowY="auto"
+            sx={{
+              '&::-webkit-scrollbar': {
+                display: 'none',
+              },
+              '-ms-overflow-style': 'none',
+              'scrollbar-width': 'none',
+            }}
+          >
             <Text fontSize="lg" mb={4} fontWeight="semibold" textAlign="center">
               Insights Gerados
             </Text>
@@ -119,8 +212,16 @@ export default function DashboardPage() {
                   <Text fontSize="sm" color="gray.100">
                     {msg}
                   </Text>
-                  <Text fontSize="xs" textAlign="right" color="gray.400" mt={1}>
-                    {new Date(Date.now() - idx * 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <Text
+                    fontSize="xs"
+                    textAlign="right"
+                    color="gray.400"
+                    mt={1}
+                  >
+                    {new Date(Date.now() - idx * 3600000).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </Text>
                 </Box>
               ))}
