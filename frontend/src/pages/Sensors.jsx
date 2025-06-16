@@ -9,34 +9,84 @@ import {
   Flex,
   Spacer,
   useColorModeValue,
+  Alert,
+  AlertIcon,
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
+  useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure
 } from '@chakra-ui/react'
-import { FiTool } from 'react-icons/fi'
 import { BsThreeDotsVertical } from 'react-icons/bs'
-//import axios from 'axios'
+import { getSensors } from '../services/sensorService'
 
-// galera,Se for usar em uma chamada real,usa o axios:
-const fetchSensors = async () => {
-  // return await axios.get('/api/sensors')
-  return [
-    { id: 4957, status: 'ATIVO', modelo: 'ESP32', categoria: 'Umidade' },
-    { id: 2484, status: 'ATIVO', modelo: 'ESP32', categoria: 'Temperatura' },
-    { id: 6986, status: 'ATIVO', modelo: 'ESP32', categoria: 'Temperatura' },
-    { id: 3265, status: 'ATIVO', modelo: 'ESP32', categoria: 'Temperatura' },
-    { id: 5632, status: 'SUSPENSO', modelo: 'ESP32', categoria: 'Temperatura' },
-    { id: 1593, status: 'SUSPENSO', modelo: 'ESP32', categoria: 'Temperatura' },
-    { id: 3571, status: 'ERRO', modelo: 'ESP32', categoria: 'Temperatura' },
-    { id: 6589, status: 'ERRO', modelo: 'ESP32', categoria: 'Temperatura' },
-    { id: 5437, status: 'ERRO', modelo: 'ESP32', categoria: 'Umidade' },
-  ]
+const enviarLeituraManual = async (dados) => {
+  console.log('Enviando leitura:', dados)
+  return new Promise((resolve) => setTimeout(resolve, 1000)) // simulação
 }
 
 export default function Sensors() {
   const [sensors, setSensors] = useState([])
+  const [error, setError] = useState(null)
   const bg = useColorModeValue('gray.50', 'gray.800')
-  const cardBg = useColorModeValue('white', 'gray.700')
+  const cardBg = useColorModeValue('#ffffff', '#1A202C')
+
+  const [formData, setFormData] = useState({
+    sensorId: '',
+    valor: '',
+    dataHora: ''
+  })
+
+  const toast = useToast()
+  const { isOpen, onOpen, onClose } = useDisclosure()
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await enviarLeituraManual(formData)
+      toast({
+        title: 'Leitura enviada com sucesso!',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
+      setFormData({ sensorId: '', valor: '', dataHora: '' })
+    } catch (error) {
+      toast({
+        title: 'Erro ao enviar leitura.',
+        description: error.message || 'Tente novamente.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
 
   useEffect(() => {
-    fetchSensors().then(data => setSensors(data))
+    const fetchSensors = async () => {
+      try {
+        const data = await getSensors()
+        setSensors(data)
+        setError(null) // limpa erro caso tenha
+      } catch (error) {
+        console.error('Erro ao buscar sensores:', error)
+        setError('Não foi possível carregar os sensores. Tente novamente mais tarde.')
+      }
+    }
+
+    fetchSensors()
   }, [])
 
   const statuses = ['ATIVO', 'SUSPENSO', 'ERRO']
@@ -44,7 +94,14 @@ export default function Sensors() {
 
   return (
     <Box px={6} py={4} bg={bg} minH="100vh">
-      <Grid templateColumns="repeat(3, 1fr)" gap={6}>
+      {error && (
+        <Alert status="error" mb={6} borderRadius="md">
+          <AlertIcon />
+          {error}
+        </Alert>
+      )}
+
+      <Grid templateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }} gap={6}>
         {statuses.map(status => (
           <Box key={status}>
             <Text fontSize="lg" fontWeight="semibold" mb={3}>
@@ -74,27 +131,59 @@ export default function Sensors() {
                       />
                     </Flex>
 
-                    <Stack mt={3} spacing={1}>
-                      <Text fontSize="sm">ID: {sensor.id}</Text>
-                      <Text fontSize="sm">Modelo - {sensor.modelo}</Text>
-                      <Text fontSize="sm">Categoria - {sensor.categoria}</Text>
+                    <Stack mt={2} spacing={1}>
+                      <Text fontSize="sm"><strong>ID:</strong> {sensor.id}</Text>
+                      <Text fontSize="sm"><strong>Nome:</strong> {sensor.modelo}</Text>
+                      <Text fontSize="sm"><strong>Categoria:</strong> {sensor.categoria}</Text>
+                      <Text fontSize="sm">
+                        <strong>Última leitura:</strong>{' '}
+                        {Array.isArray(sensor.leituras) && sensor.leituras.length > 0
+                          ? `${sensor.leituras.at(-1).valor} ${sensor.leituras.at(-1).unidade || ''}`.trim()
+                          : 'Sem dados'}
+                      </Text>
                     </Stack>
-
-                    <Flex mt={3}>
-                      <Spacer />
-                      <IconButton
-                        size="sm"
-                        variant="ghost"
-                        icon={<FiTool />}
-                        aria-label="Ações"
-                      />
-                    </Flex>
                   </Box>
                 ))}
             </Stack>
           </Box>
         ))}
       </Grid>
+      <Box position="fixed" bottom={6} right={6} zIndex={10}>
+        <Button onClick={onOpen} colorScheme="blue">+</Button>
+
+        <Modal isOpen={isOpen} onClose={onClose}>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Enviar leitura manual</ModalHeader>
+            <ModalCloseButton />
+            <form onSubmit={handleSubmit}>
+              <ModalBody>
+                <FormControl mb={3} isRequired>
+                  <FormLabel>ID do Sensor</FormLabel>
+                  <Input name="sensorId" value={formData.sensorId} onChange={handleChange} />
+                </FormControl>
+                <FormControl mb={3} isRequired>
+                  <FormLabel>Valor</FormLabel>
+                  <Input name="valor" value={formData.valor} onChange={handleChange} />
+                </FormControl>
+                <FormControl mb={3} isRequired>
+                  <FormLabel>Data e Hora</FormLabel>
+                  <Input type="datetime-local" name="dataHora" value={formData.dataHora} onChange={handleChange} />
+                </FormControl>
+              </ModalBody>
+
+              <ModalFooter>
+                <Button variant="ghost" mr={3} onClick={onClose}>
+                  Cancelar
+                </Button>
+                <Button type="submit" colorScheme="blue" onClick={onClose}>
+                  Enviar
+                </Button>
+              </ModalFooter>
+            </form>
+          </ModalContent>
+        </Modal>
+      </Box>
     </Box>
   )
 }
