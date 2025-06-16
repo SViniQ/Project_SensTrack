@@ -26,7 +26,7 @@ import {
   useDisclosure
 } from '@chakra-ui/react'
 import { BsThreeDotsVertical } from 'react-icons/bs'
-import { getSensors } from '../services/sensorService'
+import { listarSensores } from '../services/sensorService'
 
 const enviarLeituraManual = async (dados) => {
   console.log('Enviando leitura:', dados)
@@ -77,7 +77,7 @@ export default function Sensors() {
   useEffect(() => {
     const fetchSensors = async () => {
       try {
-        const data = await getSensors()
+        const data = await listarSensores()
         setSensors(data)
         setError(null) // limpa erro caso tenha
       } catch (error) {
