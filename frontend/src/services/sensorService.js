@@ -1,30 +1,11 @@
-// src/services/sensorService.js
-import api from './api'
+import api from './api';
 
-export const getSensors = async () => {
-  try {
-    const data = await api.get('/sensors')
-    return data
-  } catch (error) {
-    throw error
-  }
-}
+export const cadastrarSensor = async (sensor) => {
+  const response = await api.post('/sensors', sensor);
+  return response.data;
+};
 
-export const createSensor = async (sensorData) => {
-  try {
-    const data = await api.post('/sensors', sensorData)
-    return data
-  } catch (error) {
-    throw error
-  }
-}
-
-// Exemplo: enviar leitura manual
-export const enviarLeituraManual = async (dados) => {
-  try {
-    const data = await api.post('/leituras', dados)
-    return data
-  } catch (error) {
-    throw error
-  }
-}
+export const listarSensores = async () => {
+  const response = await api.get('/sensors');
+  return response.data;
+};

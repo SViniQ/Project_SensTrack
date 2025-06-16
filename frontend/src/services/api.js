@@ -1,31 +1,14 @@
-import axios from 'axios'
-
-const baseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api'
+import axios from 'axios';
 
 const api = axios.create({
-  baseURL,
-  timeout: 10000,
-})
+  baseURL: 'http://localhost:8080',
+});
 
-api.interceptors.response.use(
-  response => response.data,
-  error => {
-    if (error.response) {
-      return Promise.reject({
-        status: error.response.status,
-        data: error.response.data,
-        message: error.response.data.message || 'Erro na resposta do servidor',
-      })
-    } else if (error.request) {
-      return Promise.reject({
-        message: 'Sem resposta do servidor. Verifique a conexão.',
-      })
-    } else {
-      return Promise.reject({
-        message: error.message,
-      })
-    }
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
-)
-
-export default api
+  return config
+})
+export default api;
