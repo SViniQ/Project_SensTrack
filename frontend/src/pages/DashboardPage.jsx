@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Flex,
@@ -7,7 +7,10 @@ import {
   Card,
   CardBody,
   Icon,
-} from '@chakra-ui/react'
+  Spinner,
+  Alert,
+  AlertIcon,
+} from '@chakra-ui/react';
 import {
   LineChart,
   Line,
@@ -17,30 +20,27 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts'
-import { BsThermometerHalf, BsDroplet, BsClock } from 'react-icons/bs'
-import Sensors from './Sensors'
-import Reports from './Reports'
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { useBreakpointValue } from '@chakra-ui/react'
+} from 'recharts';
+import { BsThermometerHalf, BsDroplet, BsClock } from 'react-icons/bs';
+import { format } from 'date-fns';
+import { listarDadosSensores, buscarDadosMedios } from '../services/sensorDataService';
 
-const insights = [
-  { icon: BsThermometerHalf, label: 'Temperatura Atual', value: '27°C' },
-  { icon: BsDroplet, label: 'Umidade Atual', value: '55%' },
-  { icon: BsClock, label: 'Última Atualização', value: '14:32' },
-]
+// Componente de Tooltip customizado para o gráfico
+const CustomTooltip = ({ active, payload }) => {
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
 
-const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <Box
-        bg="white"
+        bg={cardBg}
         p={3}
         borderRadius="md"
         boxShadow="md"
-        border="1px solid #ccc"
+        border="1px solid"
+        borderColor={borderColor}
       >
-        <Text fontWeight="bold">{label}</Text>
+        <Text fontWeight="bold">{payload[0].payload.fullTimestamp}</Text>
         {payload.map((entry) => (
           <Text key={entry.name} color={entry.color}>
             {entry.name}: {entry.value}
@@ -48,187 +48,161 @@ const CustomTooltip = ({ active, payload, label }) => {
           </Text>
         ))}
       </Box>
-    )
+    );
   }
-  return null
-}
+  return null;
+};
 
 export default function DashboardPage() {
-  const [data, setData] = useState([])
+  // ==================================================================
+  // PASSO 1: Todas as chamadas de Hooks devem estar aqui no topo.
+  // ==================================================================
+  const [summary, setSummary] = useState(null);
+  const [historicData, setHistoricData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Função que simula busca e atualização de dados
-  const fetchData = () => {
-    const now = new Date()
-    const hours = now.getHours()
-    const newData = Array.from({ length: 6 }).map((_, i) => {
-      const hour = (hours - (5 - i) + 24) % 24
-      return {
-        name: `${hour}h`,
-        temperatura: 20 + Math.round(Math.random() * 10),
-        umidade: 50 + Math.round(Math.random() * 20),
+  // Hooks do Chakra UI também devem estar no topo
+  const cardBg = useColorModeValue('white', 'gray.700');
+  const gridStroke = useColorModeValue('#e0e0e0', '#4a5568');
+
+  // ==================================================================
+  // PASSO 2: O useEffect para buscar dados.
+  // ==================================================================
+  useEffect(() => {
+    const carregarDadosDoBackend = async () => {
+      try {
+        setLoading(true); // Inicia o loading a cada busca
+        const [dadosMedios, todosOsDados] = await Promise.all([
+          buscarDadosMedios(),
+          listarDadosSensores(),
+        ]);
+
+        setSummary(dadosMedios);
+
+        const dadosFormatados = todosOsDados.map(dado => ({
+          name: format(new Date(dado.timestamp), 'HH:mm'),
+          temperatura: dado.temperature,
+          umidade: dado.humidity,
+          fullTimestamp: format(new Date(dado.timestamp), 'dd/MM/yyyy HH:mm:ss'),
+        }));
+        setHistoricData(dadosFormatados);
+        
+        setError(null);
+      } catch (err) {
+        console.error("Erro ao carregar dados do dashboard:", err);
+        setError("Não foi possível carregar os dados. Verifique se o back-end está rodando e acessível.");
+      } finally {
+        setLoading(false);
       }
-    })
-    setData(newData)
+    };
+
+    carregarDadosDoBackend();
+    const intervalId = setInterval(carregarDadosDoBackend, 30000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // ==================================================================
+  // PASSO 3: Agora sim, os retornos condicionais.
+  // ==================================================================
+  if (loading && historicData.length === 0) { // Mostra o spinner apenas no carregamento inicial
+    return (
+      <Flex justify="center" align="center" minH="80vh">
+        <Spinner size="xl" thickness="4px" color="blue.500" />
+      </Flex>
+    );
   }
 
-  useEffect(() => {
-    fetchData() // busca inicial
+  if (error) {
+    return (
+      <Alert status="error" borderRadius="md">
+        <AlertIcon />
+        {error}
+      </Alert>
+    );
+  }
 
-    const interval = setInterval(() => {
-      fetchData() // atualiza a cada 30 segundos
-    }, 30000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  const bg = useColorModeValue('gray.100', 'gray.800')
-  const cardBg = useColorModeValue('white', 'gray.700')
-
-  const direction = useBreakpointValue({
-    base: 'column',
-    lg: 'row',
-  })
-
+  // ==================================================================
+  // PASSO 4: O return principal do componente.
+  // ==================================================================
   return (
-    <Flex direction="column" minH="100vh" p={4} bg={bg}>
-      <Box flex="1" p={4}>
-        <Routes>
-          <Route index element={<div>Painel de controle</div>} />
-          <Route path="sensors" element={<Sensors />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="*" element={<Navigate to="" replace />} />
-        </Routes>
-      </Box>
-
-      <Flex direction={direction} gap={6} flex="1">
-        <Box
-          flex="2"
-          minW="0"
-          bg={cardBg}
-          borderRadius="xl"
-          p={4}
-          boxShadow="md"
-          height={{ base: '300px', md: '400px' }}
-        >
-          <Text
-            fontSize={{ base: 'lg', md: '2xl' }}
-            mb={6}
-            fontWeight="bold"
-            color="blue.600"
-          >
-            Temperatura e Umidade nas Últimas Horas
-          </Text>
-
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={data}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis
-                dataKey="name"
-                stroke="#8884d8"
-                tick={{ fontSize: 14 }}
-                padding={{ left: 10, right: 10 }}
-              />
-              <YAxis
-                stroke="#8884d8"
-                tick={{ fontSize: 14 }}
-                domain={['dataMin - 5', 'dataMax + 5']}
-                allowDecimals={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend verticalAlign="top" height={36} />
-              <Line
-                type="monotone"
-                dataKey="temperatura"
-                name="Temperatura"
-                stroke="#3182CE"
-                strokeWidth={3}
-                dot={{ r: 6, strokeWidth: 2, stroke: '#3182CE', fill: '#fff' }}
-                activeDot={{ r: 8 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="umidade"
-                name="Umidade"
-                stroke="#38A169"
-                strokeWidth={3}
-                dot={{ r: 6, strokeWidth: 2, stroke: '#38A169', fill: '#fff' }}
-                activeDot={{ r: 8 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </Box>
-
-        <Flex direction="column" flex="1" minW="0" gap={4}>
-          {insights.map(({ icon, label, value }) => (
-            <Card key={label} bg={cardBg} borderRadius="xl" boxShadow="md">
-              <CardBody>
-                <Flex align="center" gap={4}>
-                  <Icon as={icon} boxSize={6} color="blue.500" />
-                  <Box>
-                    <Text fontSize="sm" color="gray.500">
-                      {label}
-                    </Text>
-                    <Text fontSize="xl" fontWeight="bold">
-                      {value}
-                    </Text>
-                  </Box>
-                </Flex>
-              </CardBody>
-            </Card>
-          ))}
-
-          <Box
-            bg={cardBg}
-            borderRadius="xl"
-            boxShadow="md"
-            p={4}
-            mt={4}
-            flex="1"
-            maxH="350px"
-            overflowY="auto"
-            sx={{
-              '&::-webkit-scrollbar': {
-                display: 'none',
-              },
-              '-ms-overflow-style': 'none',
-              'scrollbar-width': 'none',
-            }}
-          >
-            <Text fontSize="lg" mb={4} fontWeight="semibold" textAlign="center">
-              Insights Gerados
-            </Text>
-            <Box display="flex" flexDirection="column" gap={3}>
-              {[
-                'A umidade está muito alta, recomenda-se reduzir a potência dos humidificadores.',
-                'A temperatura está aumentando muito, recomenda-se reduzir a temperatura do ar-condicionado.',
-                'A temperatura está muito baixa, recomenda-se aumentar a temperatura do ar-condicionado.',
-                'A umidade está aumentando, recomenda-se reduzir a potência dos humidificadores.',
-                'A temperatura está baixa, recomenda-se colocar o ar-condicionado em 25 °C.',
-              ].map((msg, idx) => (
-                <Box key={idx} bg="gray.600" p={3} borderRadius="md">
-                  <Text fontSize="sm" color="gray.100">
-                    {msg}
-                  </Text>
-                  <Text
-                    fontSize="xs"
-                    textAlign="right"
-                    color="gray.400"
-                    mt={1}
-                  >
-                    {new Date(Date.now() - idx * 3600000).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        </Flex>
+    <Flex direction="column" gap={6}>
+      {/* Cards de Resumo */}
+      <Flex direction={{ base: 'column', md: 'row' }} gap={6}>
+        <Card flex="1" bg={cardBg} borderRadius="xl" boxShadow="md">
+          <CardBody>
+            <Flex align="center" gap={4}>
+              <Icon as={BsThermometerHalf} boxSize={6} color="blue.500" />
+              <Box>
+                <Text fontSize="sm" color="gray.500">Temperatura Média (últimas 10)</Text>
+                <Text fontSize="xl" fontWeight="bold">
+                  {summary ? `${summary.averageTemperature.toFixed(1)}°C` : '...'}
+                </Text>
+              </Box>
+            </Flex>
+          </CardBody>
+        </Card>
+        <Card flex="1" bg={cardBg} borderRadius="xl" boxShadow="md">
+          <CardBody>
+            <Flex align="center" gap={4}>
+              <Icon as={BsDroplet} boxSize={6} color="blue.500" />
+              <Box>
+                <Text fontSize="sm" color="gray.500">Umidade Média (últimas 10)</Text>
+                <Text fontSize="xl" fontWeight="bold">
+                  {summary ? `${summary.averageHumidity.toFixed(1)}%` : '...'}
+                </Text>
+              </Box>
+            </Flex>
+          </CardBody>
+        </Card>
+        <Card flex="1" bg={cardBg} borderRadius="xl" boxShadow="md">
+          <CardBody>
+            <Flex align="center" gap={4}>
+              <Icon as={BsClock} boxSize={6} color="blue.500" />
+              <Box>
+                <Text fontSize="sm" color="gray.500">Atualizado em</Text>
+                <Text fontSize="xl" fontWeight="bold">
+                  {format(new Date(), 'HH:mm:ss')}
+                </Text>
+              </Box>
+            </Flex>
+          </CardBody>
+        </Card>
       </Flex>
+
+      {/* Gráfico Histórico */}
+      <Box bg={cardBg} borderRadius="xl" p={4} boxShadow="md" height="400px">
+        <Text fontSize={{ base: 'lg', md: '2xl' }} mb={6} fontWeight="bold" color="blue.600">
+          Histórico de Temperatura e Umidade
+        </Text>
+        <ResponsiveContainer width="100%" height="85%">
+          <LineChart data={historicData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+            <XAxis dataKey="name" stroke="#8884d8" tick={{ fontSize: 12 }} />
+            <YAxis stroke="#8884d8" tick={{ fontSize: 12 }} />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend verticalAlign="top" height={36} />
+            <Line
+              type="monotone"
+              dataKey="temperatura"
+              name="Temperatura"
+              stroke="#3182CE"
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              activeDot={{ r: 6 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="umidade"
+              name="Umidade"
+              stroke="#38A169"
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              activeDot={{ r: 6 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </Box>
     </Flex>
-  )
+  );
 }

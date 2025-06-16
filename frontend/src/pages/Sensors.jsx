@@ -78,6 +78,7 @@ export default function Sensors() {
     const fetchSensors = async () => {
       try {
         const data = await listarSensores()
+        console.log('Dados de sensores recebidos da API:', data);
         setSensors(data)
         setError(null) // limpa erro caso tenha
       } catch (error) {
@@ -135,12 +136,17 @@ export default function Sensors() {
                       <Text fontSize="sm"><strong>ID:</strong> {sensor.id}</Text>
                       <Text fontSize="sm"><strong>Nome:</strong> {sensor.modelo}</Text>
                       <Text fontSize="sm"><strong>Categoria:</strong> {sensor.categoria}</Text>
+                      
+                      {/* ================================================== */}
+                      {/* LINHA CORRIGIDA ABAIXO                           */}
+                      {/* ================================================== */}
                       <Text fontSize="sm">
                         <strong>Última leitura:</strong>{' '}
                         {Array.isArray(sensor.leituras) && sensor.leituras.length > 0
-                          ? `${sensor.leituras.at(-1).valor} ${sensor.leituras.at(-1).unidade || ''}`.trim()
+                          ? `${sensor.leituras.at(-1).temperature}°C  /  ${sensor.leituras.at(-1).humidity}%`
                           : 'Sem dados'}
                       </Text>
+
                     </Stack>
                   </Box>
                 ))}
